@@ -11,12 +11,13 @@ import CopiedIcon from "../icons/copied.svg";
 import { withTimeout, reportDbError } from '../utils/connection';
 import { showAlert, showConfirm } from '../Dialog/dialogStore';
 import { getClientId } from '../utils/clientId';
-import { snapshotToList, getLatestTopic, handToNumbers, toRevealList, pickRandomUnused, getOnlinePlayers, dealNumbers, getSkippedNumbers, isRoundWon, numberColor } from '../utils/roomData';
+import { snapshotToList, getLatestTopic, handToNumbers, toRevealList, pickRandomUnused, getOnlinePlayers, dealNumbers, getSkippedNumbers, isRoundWon } from '../utils/roomData';
 import { useRoomPresence } from '../hooks/useRoomPresence';
 import { useHost } from '../hooks/useHost';
 import PlayerList, { CrownIcon } from '../PlayerList';
 import Chat from '../Chat';
 import TopicNotice from '../TopicNotice';
+import Hand from '../Hand';
 import MissTaunt, { createTauntEvent } from '../MissTaunt';
 import WinCelebration from '../WinCelebration';
 
@@ -33,6 +34,7 @@ function MainPage() {
   const [clientId] = useState(getClientId);
   const [myNumbers, setMyNumbers] = useState([]);
   const [dealtCounts, setDealtCounts] = useState({});
+  const [numbersLoaded, setNumbersLoaded] = useState(false);
   const [revealedNumbers, setRevealedNumbers] = useState([]);
   const [numbersPerPlayer, setNumbersPerPlayer] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
@@ -235,6 +237,7 @@ function MainPage() {
     if (!clientId) return undefined;
     const unsubscribe = onValue(ref(db, `${handPath}/${clientId}`), (snapshot) => {
       setMyNumbers(handToNumbers(snapshot.val()));
+      setNumbersLoaded(true);
     });
     return () => unsubscribe();
   }, [handPath, clientId]);
@@ -292,12 +295,8 @@ function MainPage() {
   }, [roomPath, navigate]);
 
   const renderNumbersStatus = () => {
-    if (!hasRound) {
-      return <p className="hint">{isHost ? 'เลือกจำนวนเลขต่อคน แล้วกดแจกเลขได้เลย' : `รอ ${hostName || 'host'} แจกเลข`}</p>;
-    }
-    if (myNumbers.length === 0) {
-      return <p className="hint">รอบนี้เริ่มไปแล้ว รอรอบถัดไปนะ</p>;
-    }
+    if (!hasRound) return <p className="hint">เลือกจำนวนเลขต่อคน แล้วกดแจกเลขได้เลย</p>;
+    if (myNumbers.length === 0) return <p className="hint">รอบนี้คุณไม่ได้ไพ่ (เข้ามากลางรอบ)</p>;
     return null;
   };
 
@@ -341,10 +340,11 @@ function MainPage() {
                   )}
                 </section>
 
-                <section className="card numbers-card">
-                  <h2 className="card-title">เลขของคุณ</h2>
+                {/* ส่วนแจกไพ่: เฉพาะ host (ผู้เล่นดูการ์ดบนมือที่ขอบล่างจอ) */}
+                {isHost && (
+                  <section className="card numbers-card">
+                    <h2 className="card-title">เลขของคุณ</h2>
 
-                  {isHost && (
                     <div className="deal-controls">
                       <div className="segmented" role="group" aria-label="จำนวนเลขต่อคน">
                         <span className="field-label">จำนวนเลขต่อคน</span>
@@ -365,34 +365,12 @@ function MainPage() {
                         {hasRound ? 'แจกเลขใหม่' : 'แจกเลข'} ({onlinePlayers.length} คน)
                       </button>
                     </div>
-                  )}
 
-                  {renderNumbersStatus()}
+                    {renderNumbersStatus()}
 
-                  {myNumbers.length > 0 &&
-                    <>
-                      <div className="number-tiles">
-                        {myNumbers.map((value) => (
-                          <h1
-                            key={value}
-                            className={`number-tile ${revealedSet.has(value) ? 'is-revealed' : ''} ${skippedNumbers.has(value) ? 'is-skipped' : ''}`}
-                            title={skippedNumbers.has(value) ? 'เลขนี้โดนข้ามไปแล้ว' : undefined}
-                            role="heading"
-                            aria-level={1}
-                            tabIndex={0}
-                            onClick={() => handleClickNumber(value)}
-                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleClickNumber(value); } }}
-                            style={revealedSet.has(value) ? undefined : { color: numberColor(value) }}
-                          >
-                            {value}
-                          </h1>
-                          
-                        ))}
-                      </div>
-                      <p className="hint">แตะที่เลขเพื่อเปิดเผยให้ทุกคนเห็น</p>
-                    </>
-                  }
-                </section>
+                    {myNumbers.length > 0 && <p className="hint">การ์ดของคุณอยู่ด้านล่างจอ แตะการ์ดเพื่อเปิดเผยให้ทุกคนเห็น</p>}
+                  </section>
+                )}
 
                 <HeartDisplay heart={heart} onReduceHeart={handleReduceHeart} onResetHeart={handleResetHeart} />
                 {/* มือถือ: CSS order ดันไปไว้หลังแชทเหมือนเดิม */}
@@ -409,6 +387,7 @@ function MainPage() {
             <MissTaunt roomPath={roomPath} />
             <WinCelebration active={isWon} />
             <TopicNotice roomPath={roomPath} silent={isHost} />
+            <Hand numbers={myNumbers} revealed={revealedSet} skipped={skippedNumbers} onOpen={handleClickNumber} ready={numbersLoaded} />
         </div>
         {
           showNameModal && <NameModal userName={userName} setUserName={setUserName} setShowNameModal={setShowNameModal} />

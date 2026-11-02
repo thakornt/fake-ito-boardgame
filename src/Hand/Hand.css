@@ -1,0 +1,202 @@
+/* ===== การ์ดบนมือ (ติดขอบล่าง เรียงเป็นพัด) =====
+   ปรับขนาดการ์ด: แก้แค่ --card-scale (1 = กว้าง 104px สูง 146px เลข 46px ทุกอย่างย่อ/ขยายตามสัดส่วน)
+   desktop ใช้ค่าในบล็อกนี้ ส่วนมือถือ (จอกว้าง <= 600px) ใช้ค่าในบล็อก @media ด้านล่าง */
+.hand,
+.hand-spacer {
+  --card-scale: 1;
+  --card-w: calc(104px * var(--card-scale));
+  --card-h: calc(146px * var(--card-scale));
+  --card-font: calc(46px * var(--card-scale));
+  --hand-toolbar: 36px;
+  /* ส่วนที่โผล่เหนือขอบจอ: แถบปุ่ม + การ์ดเกือบทั้งใบ (ขอบล่างการ์ดจมใต้จอเหมือนถืออยู่) */
+  --hand-visible: calc(var(--hand-toolbar) + var(--card-h) * 0.86);
+  --hand-peek: 44px; /* ตอนพับ: เห็นแค่แถบปุ่ม + ขอบบนการ์ดนิดเดียว */
+}
+
+@media (max-width: 600px) {
+  .hand,
+  .hand-spacer {
+    --card-scale: 0.92; /* 3 ใบยังเรียงพอดีจอ 360px */
+    --hand-peek: 40px;
+  }
+}
+
+.hand-spacer {
+  /* ต้องอยู่ท้ายสุดของหน้า: บนมือถือการ์ดผู้เล่นใช้ order: 1 ดันไปไว้หลังแชท spacer จึงต้องมากกว่านั้น */
+  order: 2;
+  flex: none;
+  height: calc(var(--hand-visible) - 24px);
+  transition: height 300ms var(--ease-out);
+}
+
+.hand-spacer.is-collapsed {
+  height: var(--hand-peek);
+}
+
+.hand {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.hand-inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: var(--hand-visible);
+  padding: 0 16px;
+  pointer-events: auto;
+  touch-action: none; /* ลากขึ้นลงบนมือถือ โดยไม่เลื่อนหน้าไปด้วย */
+  transform: translateY(var(--drag, 0px));
+  transition: transform 300ms var(--ease-out);
+}
+
+.hand-inner.is-collapsed {
+  transform: translateY(calc(100% - var(--hand-peek) + var(--drag, 0px)));
+}
+
+.hand-inner.is-dragging {
+  transition: none;
+}
+
+.hand-toolbar {
+  display: flex;
+  align-self: stretch;
+  justify-content: flex-end;
+  height: var(--hand-toolbar);
+}
+
+.hand-toggle {
+  position: absolute;
+  top: -20px;
+  right: -30px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  background: var(--color-card-raised);
+  color: var(--color-fg);
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.hand-chevron {
+  transition: transform 300ms var(--ease-out);
+}
+
+.hand-inner.is-collapsed .hand-chevron {
+  transform: rotate(180deg);
+}
+
+.hand-cards {
+  display: flex;
+  justify-content: center;
+}
+
+/* ===== ตัวการ์ด: สี่เหลี่ยมผืนผ้าแนวตั้ง กรอบครีม + เส้นขอบด้านใน ===== */
+.play-card {
+  --off: calc(var(--i) - (var(--n) - 1) / 2); /* ตำแหน่งจากกลางพัด: -1, 0, 1 */
+  --rot: calc(var(--off) * 8deg);
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--card-w);
+  height: var(--card-h);
+  margin: 0 calc(var(--card-w) * -0.09);
+  border-radius: 12px;
+  background: linear-gradient(to bottom, #717171, #908f90);
+  font-family: var(--font-display);
+  font-size: var(--card-font);
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 -2px 14px rgba(0, 0, 0, 0.45);
+  transform-origin: 50% 140%; /* หมุนรอบจุดใต้การ์ด = เรียงโค้งแบบถือไพ่ */
+  transform: rotate(var(--rot)) translateY(var(--lift, 0px));
+  transition: translate 160ms var(--ease-out);
+}
+
+/* ใบกลางของ 3 ใบ: ยกขึ้น (ค่าติดลบ = ขึ้น) ตามขนาดการ์ด */
+.play-card:nth-child(2):nth-last-child(2) {
+  --lift: calc(-10px * var(--card-scale));
+}
+
+/* หน้าการ์ดสีเข้ม (ให้สีเลขอ่านง่ายเหมือนเดิม) + เส้นขอบด้านในสองชั้น */
+.play-card::before,
+.play-card::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  border-radius: 10px;
+}
+
+.play-card::before {
+  inset: 4px;
+  background: var(--color-tile);
+  border: 1.5px solid rgba(255, 255, 255, 0.28);
+}
+
+.play-card::after {
+  inset: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 5px;
+}
+
+.play-card:hover,
+.play-card:focus-visible {
+  translate: 0 -14px;
+}
+
+.play-card:active {
+  translate: 0 -6px;
+}
+
+/* host แจกไพ่: การ์ดลอยขึ้นมาจากใต้จอทีละใบ */
+.play-card.is-dealing {
+  animation: card-deal 520ms var(--ease-out) backwards;
+  animation-delay: calc(var(--i) * 120ms);
+}
+
+@keyframes card-deal {
+  from {
+    opacity: 0;
+    transform: translateY(160%) rotate(0deg);
+  }
+}
+
+/* เลขที่เปิดไปแล้ว: ตัวหนังสือเทา */
+.play-card.is-revealed {
+  color: #8b94a7;
+}
+
+/* เลขที่โดนข้าม: เรืองแสงแดงรอบการ์ดและสั่นเบา ๆ ค้างไว้จนกว่าจะแจกเลขใหม่ */
+.play-card.is-skipped {
+  animation: tile-skipped 1.4s ease-in-out infinite;
+}
+
+.play-card.is-skipped.is-dealing {
+  animation: card-deal 520ms var(--ease-out) backwards, tile-skipped 1.4s ease-in-out infinite;
+  animation-delay: calc(var(--i) * 120ms), 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hand-inner,
+  .hand-spacer {
+    transition: none;
+  }
+
+  .play-card.is-dealing {
+    animation: none;
+  }
+}

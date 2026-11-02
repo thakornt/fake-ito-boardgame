@@ -285,19 +285,20 @@ describe('deal numbers', () => {
     expect(fakeDb.__getData('hands/room1')).toBeNull();
   });
 
-  test('คนที่ไม่ใช่ host ไม่มีปุ่มแจกเลข เห็นข้อความรอ host แล้วได้เลขเมื่อ host แจก', async () => {
+  test('คนที่ไม่ใช่ host ไม่มีส่วนแจกไพ่ และได้เลขเมื่อ host แจก', async () => {
     seedRoom({ hostId: 'host1', players: { host1: onlinePlayer('Alice', 1) } });
     Cookies.set('userName', 'Bob');
     await renderPage();
 
-    expect(screen.getByText('รอ Alice แจกเลข')).toBeInTheDocument();
+    // ผู้เล่นที่ไม่ใช่ host ไม่มีส่วนแจกไพ่เลย
+    expect(screen.queryByText('เลขของคุณ')).not.toBeInTheDocument();
     expect(screen.queryByText(/^แจกเลข/)).not.toBeInTheDocument();
 
     act(() => fakeDb.__write('hands/room1', handData({ [ME]: [12], host1: [70] })));
     expect(myNumberHeadings()).toEqual([12]);
   });
 
-  test('เข้าห้องกลางรอบ (ไม่ได้เลข) เห็นข้อความให้รอรอบถัดไป และในรายชื่อขึ้นว่ารอรอบหน้า', async () => {
+  test('เข้าห้องกลางรอบ (ไม่ได้เลข) ในรายชื่อขึ้นว่ารอรอบหน้า', async () => {
     seedRoom({
       hostId: 'host1',
       players: { host1: onlinePlayer('Alice', 1) },
@@ -305,7 +306,6 @@ describe('deal numbers', () => {
     Cookies.set('userName', 'Bob');
     await renderPage();
 
-    expect(screen.getByText('รอบนี้เริ่มไปแล้ว รอรอบถัดไปนะ')).toBeInTheDocument();
     const me = within(screen.getByRole('list')).getByText('Bob').closest('li');
     expect(within(me).getByText('รอรอบหน้า')).toBeInTheDocument();
   });
