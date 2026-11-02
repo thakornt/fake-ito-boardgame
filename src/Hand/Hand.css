@@ -1,8 +1,7 @@
 /* ===== การ์ดบนมือ (ติดขอบล่าง เรียงเป็นพัด) =====
    ปรับขนาดการ์ด: แก้แค่ --card-scale (1 = กว้าง 104px สูง 146px เลข 46px ทุกอย่างย่อ/ขยายตามสัดส่วน)
    desktop ใช้ค่าในบล็อกนี้ ส่วนมือถือ (จอกว้าง <= 600px) ใช้ค่าในบล็อก @media ด้านล่าง */
-.hand,
-.hand-spacer {
+:root {
   --card-scale: 1;
   --card-w: calc(104px * var(--card-scale));
   --card-h: calc(146px * var(--card-scale));
@@ -14,8 +13,7 @@
 }
 
 @media (max-width: 600px) {
-  .hand,
-  .hand-spacer {
+  :root {
     --card-scale: 0.92; /* 3 ใบยังเรียงพอดีจอ 360px */
     --hand-peek: 40px;
   }
@@ -188,6 +186,28 @@
 .play-card.is-skipped.is-dealing {
   animation: card-deal 520ms var(--ease-out) backwards, tile-skipped 1.4s ease-in-out infinite;
   animation-delay: calc(var(--i) * 120ms), 0s;
+}
+
+/* desktop: หน้าห้องสูงพอดีจอ (คอลัมน์ซ้าย scroll ในตัวเอง ขวาเป็นแชท)
+   การ์ดลอยทับคอลัมน์ซ้ายแทนการกินแถวเต็ม: ไม่ใช้ spacer แต่เผื่อที่ท้ายคอลัมน์ซ้ายให้ scroll พ้นการ์ด
+   และเลื่อนการ์ดไปกลางคอลัมน์ซ้าย (หักความกว้างคอลัมน์แชท 400px + gap 16px ใน App.css) จะได้ไม่บังช่องพิมพ์แชท */
+@media (min-width: 1024px) {
+  .hand-spacer {
+    display: none;
+  }
+
+  .hand {
+    padding-right: 416px;
+  }
+
+  .wrapper:has(.hand-inner) .room-main {
+    padding-bottom: var(--hand-visible);
+    transition: padding-bottom 300ms var(--ease-out);
+  }
+
+  .wrapper:has(.hand-inner.is-collapsed) .room-main {
+    padding-bottom: var(--hand-peek);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
